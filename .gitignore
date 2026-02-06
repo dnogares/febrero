@@ -1,0 +1,36 @@
+# Python & Environment
+__pycache__/
+*.py[cod]
+venv/
+.env
+
+# Project Output Directories (from your code)
+resultados/
+resultados_urbanismo/
+RESULTADOS-MAPAS/
+ejemplo_integracion/
+ejemplo_lote/
+outputs/
+
+# Data Directories (from your code)
+GEOJSONs/
+data/
+capaslocales/
+capas/
+
+# Large GIS & Data Files
+*.gml
+*.geojson
+*.shp
+*.shx
+*.dbf
+*.gpkg
+*.tif
+*.ecw
+*.pdf
+*.png
+*.zip
+
+# IDE
+.vscode/
+.idea/
