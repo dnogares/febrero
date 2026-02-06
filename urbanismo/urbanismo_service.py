@@ -94,20 +94,42 @@ class UrbanismoService:
         try:
             from sqlalchemy import create_engine
             
-            host = os.getenv("POSTGRES_HOST")
-            db = os.getenv("POSTGRES_DB")
-            user = os.getenv("POSTGRES_USER")
-            password = os.getenv("POSTGRES_PASSWORD")
-            port = os.getenv("POSTGRES_PORT", "5432")
+            # 1. Intentar usar DATABASE_URL directa (prioridad en despliegues)
+            db_url = os.getenv("DATABASE_URL")
             
-            if all([host, db, user, password]):
-                url = f"postgresql://{user}:{password}@{host}:{port}/{db}"
-                return create_engine(url)
+            # 2. Si no, construir desde componentes
+            if not db_url:
+                host = os.getenv("POSTGRES_HOST")
+                db = os.getenv("POSTGRES_DB")
+                user = os.getenv("POSTGRES_USER")
+                password = os.getenv("POSTGRES_PASSWORD")
+                port = os.getenv("POSTGRES_PORT", "5432")
+                
+                if all([host, db, user, password]):
+                    db_url = f"postgresql://{user}:{password}@{host}:{port}/{db}"
+            
+            if db_url:
+                return create_engine(db_url)
         except ImportError:
             logger.warning("SQLAlchemy no instalado. Soporte PostGIS desactivado.")
         except Exception as e:
             logger.error(f"Error conectando a PostGIS: {e}")
         return None
+
+    def check_db_connection(self) -> Dict:
+        """Verifica explícitamente la conexión a la base de datos"""
+        engine = self._get_db_engine()
+        if not engine:
+            return {"connected": False, "message": "No configurada (Faltan variables de entorno)"}
+        
+        try:
+            from sqlalchemy import text
+            with engine.connect() as conn:
+                # Consulta ligera para verificar conectividad
+                conn.execute(text("SELECT 1"))
+                return {"connected": True, "message": "Conexión establecida"}
+        except Exception as e:
+            return {"connected": False, "error": str(e)}
 
     def listar_capas_postgis(self) -> List[Dict]:
         """Lista capas disponibles en PostGIS"""

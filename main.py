@@ -71,6 +71,16 @@ async def startup_event():
     print(f"📁 Outputs: {OUTPUTS_DIR.absolute()} (Existe: {OUTPUTS_DIR.exists()})")
     print(f"📁 Capas: {CAPAS_DIR.absolute()} (Existe: {CAPAS_DIR.exists()})")
     
+    # Verificar conexión a Base de Datos
+    try:
+        db_status = urbanismo_service.check_db_connection()
+        if db_status.get("connected"):
+            print(f"✅ Base de Datos: CONECTADA")
+        else:
+            print(f"⚠️ Base de Datos: NO CONECTADA ({db_status.get('message') or db_status.get('error')})")
+    except Exception as e:
+        print(f"⚠️ Error verificando DB: {e}")
+
     # Listar contenido de capas para depuración
     if CAPAS_DIR.exists():
         capas_encontradas = list(CAPAS_DIR.rglob("*.geojson")) + list(CAPAS_DIR.rglob("*.shp")) + list(CAPAS_DIR.rglob("*.gml"))
