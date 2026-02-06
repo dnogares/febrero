@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Dict, Optional, Tuple
 import geopandas as gpd
 import matplotlib.pyplot as plt
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +20,17 @@ class MotorUrbanisticoHibrido:
         # Configuración PostGIS
         self.db_url = os.getenv("DATABASE_URL")
         self.engine = create_engine(self.db_url) if self.db_url else None
+
+    def check_connection(self) -> Dict:
+        """Verifica la conexión a la base de datos"""
+        if not self.engine:
+            return {"connected": False, "message": "No configurado (DATABASE_URL no encontrada)"}
+        try:
+            with self.engine.connect() as conn:
+                result = conn.execute(text("SELECT version()")).fetchone()
+                return {"connected": True, "version": str(result[0])}
+        except Exception as e:
+            return {"connected": False, "error": str(e)}
 
     def obtener_capa(self, nombre: str, es_referencia: bool = False) -> Optional[gpd.GeoDataFrame]:
         """Busca en FGB -> GPKG -> SHP -> PostGIS"""

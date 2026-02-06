@@ -26,4 +26,6 @@ async def analizar_catastro(referencia: str):
 
 @router.get("/status")
 async def health_check():
-    return {"status": "online", "motor": "Híbrido (Files/PostGIS)"}
+    # Verificar conexión a DB
+    db_status = motor.check_connection()
+    return {"status": "online", "motor": "Híbrido (Files/PostGIS)", "database": db_status}
