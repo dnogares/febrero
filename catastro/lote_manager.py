@@ -259,6 +259,11 @@ class LoteManager:
                 if mapa_global.exists():
                     zipf.write(mapa_global, arcname=f"Mapa_Global_{lote_id}.png")
                 
+                # 3b. Incluir GML Global
+                gml_global = self.lotes_dir / f"{lote_id}_global.gml"
+                if gml_global.exists():
+                    zipf.write(gml_global, arcname=f"GML_Global_{lote_id}.gml")
+                
                 # 4. Organizar archivos por carpetas de tipo (GML, PDF, Imagenes)
                 referencias = estado.get("referencias", {})
                 for ref, info in referencias.items():
@@ -477,6 +482,17 @@ class LoteManager:
             if not gdfs: return None
                 
             gdf_total = pd.concat(gdfs, ignore_index=True)
+            
+            # Guardar GML Global consolidado
+            try:
+                gml_global_path = self.lotes_dir / f"{lote_id}_global.gml"
+                # Asegurar CRS EPSG:4326 para exportación estándar
+                gdf_export = gdf_total.to_crs(epsg=4326) if gdf_total.crs and gdf_total.crs.to_string() != "EPSG:4326" else gdf_total
+                gdf_export.to_file(gml_global_path, driver="GML")
+                logger.info(f"🌍 GML Global generado: {gml_global_path}")
+            except Exception as e:
+                logger.error(f"Error generando GML Global: {e}")
+
             # Reproyectar a Web Mercator para mapa base
             gdf_total = gdf_total.to_crs(epsg=3857)
             
@@ -497,8 +513,16 @@ class LoteManager:
                 try: cx.add_basemap(ax, source=cx.providers.OpenStreetMap.Mapnik)
                 except: pass
             
-            # Dibujar parcelas (Rojo semitransparente con borde sólido)
-            gdf_total.plot(ax=ax, facecolor="red", alpha=0.3, edgecolor="red", linewidth=2)
+            # Configuración de estilo (Personalizable)
+            estilo_mapa = {
+                "facecolor": "red",      # Color de relleno (ej: 'red', 'blue', '#FF5733', 'none')
+                "alpha": 0.3,            # Transparencia del relleno (0.0 a 1.0)
+                "edgecolor": "red",      # Color del borde
+                "linewidth": 2           # Grosor de la línea del borde
+            }
+            
+            # Dibujar parcelas con el estilo configurado
+            gdf_total.plot(ax=ax, **estilo_mapa)
             
             # Añadir etiquetas con referencia catastral
             for idx, row in gdf_total.iterrows():

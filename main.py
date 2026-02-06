@@ -43,6 +43,14 @@ print(f"✅ Analyzer inicializado. Capas en: {CAPAS_DIR}")
 pdf_gen = AfeccionesPDF(output_dir=str(OUTPUTS_DIR))
 lote_manager = LoteManager(output_dir=str(OUTPUTS_DIR))
 
+# --- ROUTERS ADICIONALES ---
+# Registrar router de urbanismo (incluye endpoints de PostGIS y análisis híbrido)
+try:
+    from urbanismo.api_datos_urbanisticos import router as urbanismo_router
+    app.include_router(urbanismo_router)
+    print("✅ Router de urbanismo (API v1) registrado correctamente")
+except Exception as e:
+    print(f"⚠️ Error registrando router de urbanismo: {e}")
 
 # --- MODELOS DE DATOS ---
 class PdfRequest(BaseModel):
@@ -73,7 +81,7 @@ async def startup_event():
         print("⚠️ ADVERTENCIA: La carpeta de capas no existe o no es accesible")
     
     print("="*50 + "\n")
-    print(f"🌐 Accede a: http://localhost:81")
+    print(f"🌐 Accede a: http://localhost:80")
 
 # --- RUTA PRINCIPAL ---
 @app.get("/")

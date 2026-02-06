@@ -4,7 +4,7 @@ import sys
 
 # Procesar la referencia para que se genere el PDF
 ref = '8884601WF4788S0020LL'
-url = 'http://localhost:81/api/v1/analizar-parcela'
+url = 'http://localhost:80/api/v1/analizar-parcela'
 
 try:
     response = requests.post(url, data={'referencia': ref})
