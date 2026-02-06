@@ -14,12 +14,8 @@ class MotorUrbanisticoHibrido:
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         
-        # Jerarquía de carpetas
-        self.folders = {
-            "fgb": self.base_dir / "fgb",
-            "gpkg": self.base_dir / "gpkg",
-            "shp": self.base_dir / "shp"
-        }
+        # Extensiones soportadas
+        self.extensions = ["fgb", "gpkg", "shp", "geojson"]
         
         # Configuración PostGIS
         self.db_url = os.getenv("DATABASE_URL")
@@ -28,12 +24,18 @@ class MotorUrbanisticoHibrido:
     def obtener_capa(self, nombre: str, es_referencia: bool = False) -> Optional[gpd.GeoDataFrame]:
         """Busca en FGB -> GPKG -> SHP -> PostGIS"""
         # 1. Archivos Locales
-        for fmt, folder in self.folders.items():
-            patron = f"*{nombre}*.{fmt}" if es_referencia else f"{nombre}.{fmt}"
-            archivos = list(folder.glob(patron))
-            if archivos:
-                logger.info(f"💾 Cargando {fmt.upper()} local: {archivos[0].name}")
-                return gpd.read_file(archivos[0])
+        # Buscar en raíz y subcarpetas por extensión
+        search_dirs = [self.base_dir] + [self.base_dir / ext for ext in self.extensions]
+        
+        for folder in search_dirs:
+            if not folder.exists(): continue
+            
+            for ext in self.extensions:
+                patron = f"*{nombre}*.{ext}" if es_referencia else f"{nombre}.{ext}"
+                archivos = list(folder.glob(patron))
+                if archivos:
+                    logger.info(f"💾 Cargando {ext.upper()} local: {archivos[0].name}")
+                    return gpd.read_file(archivos[0])
 
         # 2. PostGIS (Ready)
         if self.engine:

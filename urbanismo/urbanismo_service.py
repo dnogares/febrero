@@ -11,6 +11,7 @@ Incluye:
 """
 
 import logging
+import os
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -88,6 +89,54 @@ class UrbanismoService:
 
     # --- Métodos de CapasService para usar directorio local de capas ---
 
+    def _get_db_engine(self):
+        """Obtiene el motor de base de datos PostGIS si está configurado"""
+        try:
+            from sqlalchemy import create_engine
+            
+            host = os.getenv("POSTGRES_HOST")
+            db = os.getenv("POSTGRES_DB")
+            user = os.getenv("POSTGRES_USER")
+            password = os.getenv("POSTGRES_PASSWORD")
+            port = os.getenv("POSTGRES_PORT", "5432")
+            
+            if all([host, db, user, password]):
+                url = f"postgresql://{user}:{password}@{host}:{port}/{db}"
+                return create_engine(url)
+        except ImportError:
+            logger.warning("SQLAlchemy no instalado. Soporte PostGIS desactivado.")
+        except Exception as e:
+            logger.error(f"Error conectando a PostGIS: {e}")
+        return None
+
+    def listar_capas_postgis(self) -> List[Dict]:
+        """Lista capas disponibles en PostGIS"""
+        capas = []
+        engine = self._get_db_engine()
+        if not engine:
+            return []
+            
+        try:
+            import pandas as pd
+            query = "SELECT f_table_name, f_geometry_column, srid, type FROM geometry_columns WHERE f_table_schema = 'public'"
+            df = pd.read_sql(query, engine)
+            
+            for _, row in df.iterrows():
+                capas.append({
+                    "nombre": row['f_table_name'],
+                    "tipo": "postgis",
+                    "geom_col": row['f_geometry_column'],
+                    "srid": row['srid'],
+                    "origen": "PostGIS",
+                    "ruta_completa": f"postgis://{row['f_table_name']}",
+                    "archivo": row['f_table_name'],
+                    "extension": ""
+                })
+        except Exception as e:
+            logger.error(f"Error listando capas PostGIS: {e}")
+            
+        return capas
+
     def listar_capas(self) -> List[Dict]:
         """
         Lista las capas disponibles en el directorio CAPAS_DIR.
@@ -128,6 +177,12 @@ class UrbanismoService:
                                 "extension": file_path.suffix.lower(),
                             }
                         )
+
+            # Agregar capas de PostGIS
+            capas_postgis = self.listar_capas_postgis()
+            if capas_postgis:
+                capas_disponibles.extend(capas_postgis)
+                logger.info(f"Capas encontradas en PostGIS: {len(capas_postgis)}")
 
             logger.info(
                 f"Capas encontradas en CAPAS_DIR (sin GPKG): "
@@ -203,6 +258,22 @@ class UrbanismoService:
                         logger.warning(
                             f"Error al intentar cargar '{nombre_capa}' de {file_path.name}: {e}"
                         )
+
+        # Intentar cargar desde PostGIS
+        engine = self._get_db_engine()
+        if engine:
+            try:
+                from sqlalchemy import inspect
+                insp = inspect(engine)
+                if insp.has_table(nombre_capa):
+                    logger.info(f"Cargando capa '{nombre_capa}' desde PostGIS...")
+                    # Usar consulta SQL directa para evitar ambigüedades
+                    capa_gdf = gpd.read_postgis(f'SELECT * FROM "{nombre_capa}"', engine)
+                    if capa_gdf.crs and capa_gdf.crs != "EPSG:25830":
+                        capa_gdf = capa_gdf.to_crs("EPSG:25830")
+                    return capa_gdf
+            except Exception as e:
+                logger.debug(f"No se pudo cargar '{nombre_capa}' desde PostGIS: {e}")
 
         if url_descarga:
             logger.info(

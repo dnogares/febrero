@@ -27,4 +27,4 @@ RUN mkdir -p outputs/gml outputs/pdfs outputs/imagenes outputs/html outputs/zips
 EXPOSE 81
 
 # Comando para ejecutar la aplicación
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "81"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "80"]

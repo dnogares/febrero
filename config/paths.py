@@ -15,9 +15,13 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 # Raíz de datos: variable de entorno con fallback a <repo>/data
 DATA_ROOT = Path(os.getenv("TASACION_DATA_ROOT", REPO_ROOT / "data")).resolve()
 
+# Detección automática de volumen montado en Easypanel (/app/capasymas)
+_EASYPANEL_CAPAS = Path("/app/capasymas")
+_DEFAULT_CAPAS = _EASYPANEL_CAPAS if _EASYPANEL_CAPAS.exists() else (DATA_ROOT / "capas")
+
 # Directorios configurables mediante variables de entorno (más flexibles)
 OUTPUTS_DIR = Path(os.getenv("TASACION_OUTPUTS_DIR", DATA_ROOT / "outputs")).resolve()
-CAPAS_DIR = Path(os.getenv("TASACION_CAPAS_DIR", DATA_ROOT / "capas")).resolve()
+CAPAS_DIR = Path(os.getenv("TASACION_CAPAS_DIR", _DEFAULT_CAPAS)).resolve()
 STATIC_DIR = Path(os.getenv("TASACION_STATIC_DIR", REPO_ROOT / "static")).resolve()
 TEMP_DIR = Path(os.getenv("TASACION_TEMP_DIR", DATA_ROOT / "temp")).resolve()
 

@@ -1,13 +1,14 @@
 from fastapi import APIRouter, HTTPException
-from motor_urbanistico import MotorUrbanisticoHibrido
+from .motor_urbanistico import MotorUrbanisticoHibrido
 from pathlib import Path
+from config.paths import CAPAS_DIR, OUTPUTS_DIR
 
 router = APIRouter(prefix="/api/v1/urbanismo", tags=["Análisis Urbanístico"])
 
 # Inicialización única del motor
 motor = MotorUrbanisticoHibrido(
-    data_dir="/app/data", 
-    output_dir="/app/outputs"
+    data_dir=str(CAPAS_DIR), 
+    output_dir=str(OUTPUTS_DIR)
 )
 
 @router.get("/analizar/{referencia}")
