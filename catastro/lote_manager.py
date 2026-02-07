@@ -335,14 +335,23 @@ class LoteManager:
         if not ref_dir.exists():
             return archivos
         
-        # GML
-        gml_dir = ref_dir / "gml"
-        if gml_dir.exists():
-            for gml in gml_dir.glob("*.gml"):
-                if "parcela" in gml.name:
-                    archivos["gml_parcela"] = str(gml)
-                elif "edificio" in gml.name:
-                    archivos["gml_edificio"] = str(gml)
+        # GML: Buscar en raíz (nuevo formato) y luego en subcarpeta (legacy)
+        # 1. Buscar en raíz
+        for gml in ref_dir.glob("*.gml"):
+            if "parcela" in gml.name:
+                archivos["gml_parcela"] = str(gml)
+            elif "edificio" in gml.name:
+                archivos["gml_edificio"] = str(gml)
+        
+        # 2. Si no se encontró, buscar en subcarpeta gml
+        if not archivos["gml_parcela"] or not archivos["gml_edificio"]:
+            gml_dir = ref_dir / "gml"
+            if gml_dir.exists():
+                for gml in gml_dir.glob("*.gml"):
+                    if "parcela" in gml.name and not archivos["gml_parcela"]:
+                        archivos["gml_parcela"] = str(gml)
+                    elif "edificio" in gml.name and not archivos["gml_edificio"]:
+                        archivos["gml_edificio"] = str(gml)
         
         # PDFs
         pdf_dir = ref_dir / "pdf"
@@ -470,6 +479,19 @@ class LoteManager:
                 if datos.get("estado") == "exitoso":
                     archivos = datos.get("archivos", {})
                     gml = archivos.get("gml_parcela")
+                    
+                    # Fallback: Si no está en el estado, buscar en disco (para compatibilidad)
+                    if not gml:
+                        ref_limpia = datos.get("referencia", ref)
+                        posibles = [
+                            self.output_dir / ref_limpia / f"{ref_limpia}_parcela.gml",
+                            self.output_dir / ref_limpia / "gml" / f"{ref_limpia}_parcela.gml"
+                        ]
+                        for p in posibles:
+                            if p.exists():
+                                gml = str(p)
+                                break
+
                     if gml and Path(gml).exists():
                         try:
                             df = gpd.read_file(gml)
