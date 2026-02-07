@@ -1233,14 +1233,23 @@ async def descargar_global(referencia: str):
 # ==================== FICHAS URBANÍSTICAS ====================
 # Integración de fichas urbanísticas profesionales
 try:
-    from urbanismo.endpoints_ficha_urbanistica import setup_ficha_urbanistica_routes
+    from urbanismo.endpoints_ficha_urbanistica import router as ficha_router, inicializar_servicios as init_ficha_services
     
+    # Incluir router explícitamente (CRÍTICO para que FastAPI lo detecte siempre)
+    app.include_router(ficha_router)
+    print("✅ Router de ficha urbanística (API) registrado correctamente")
+
     @app.on_event("startup")
-    async def setup_ficha_routes():
-        """Configurar rutas de fichas urbanísticas al iniciar"""
-        base_dir = Path(__file__).parent
-        setup_ficha_urbanistica_routes(app, base_dir)
-        print("✅ Rutas de ficha urbanística disponibles en /api/ficha-urbanistica")
+    async def setup_ficha_services():
+        """Inicializar servicios de fichas urbanísticas al iniciar"""
+        try:
+            base_dir = Path(__file__).parent
+            if init_ficha_services(base_dir):
+                print("✅ Servicios de ficha urbanística inicializados")
+            else:
+                print("⚠️ No se pudieron inicializar servicios de ficha urbanística")
+        except Exception as e:
+            print(f"⚠️ Error inicializando servicios de ficha: {e}")
         
 except ImportError as e:
     print(f"⚠️ Módulos de ficha urbanística no disponibles: {e}")

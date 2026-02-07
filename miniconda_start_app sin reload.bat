@@ -57,11 +57,11 @@ if not exist "outputs" mkdir outputs
 echo.
 echo ==========================================
 echo INICIANDO SERVIDOR (SIN RECARGA AUTOMATICA)
-echo Accede a: http://localhost:81
+echo Accede a: http://localhost:80
 echo ==========================================
 echo.
 
 REM Ejecutar aplicacion sin reload
-uvicorn main:app --host 0.0.0.0 --port 81
+uvicorn main:app --host 0.0.0.0 --port 80
 
 pause
