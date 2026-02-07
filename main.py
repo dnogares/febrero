@@ -1037,6 +1037,88 @@ async def obtener_geojson(referencia: str):
             content={"status": "error", "error": str(e)}
         )
 
+@app.get("/api/v1/lote/{lote_id}/geojson")
+async def obtener_lote_geojson(lote_id: str):
+    """
+    Devuelve el GeoJSON consolidado de todas las parcelas del lote para el visor.
+    """
+    try:
+        import geopandas as gpd
+        import json
+        
+        lotes_dir = OUTPUTS_DIR / "_lotes"
+        gml_path = lotes_dir / f"{lote_id}_global.gml"
+        
+        # Si no existe, intentar regenerar desde el estado
+        if not gml_path.exists():
+            if (lotes_dir / f"{lote_id}_estado.json").exists():
+                lote_manager.regenerar_resumen(lote_id)
+        
+        if not gml_path.exists():
+            raise HTTPException(status_code=404, detail="Geometría global no encontrada para este lote")
+            
+        gdf = gpd.read_file(gml_path)
+        if gdf.crs and gdf.crs != "EPSG:4326":
+            gdf = gdf.to_crs("EPSG:4326")
+            
+        return json.loads(gdf.to_json())
+        
+    except Exception as e:
+        print(f"❌ Error obteniendo GeoJSON lote: {e}")
+        return JSONResponse(status_code=500, content={"status": "error", "error": str(e)})
+
+@app.get("/api/v1/lote/{lote_id}/capas-afectadas")
+async def obtener_lote_capas_afectadas(lote_id: str):
+    """
+    Devuelve la lista de capas que intersectan con el lote y su configuración de leyenda.
+    """
+    try:
+        estado = lote_manager.obtener_estado(lote_id)
+        if not estado:
+            raise HTTPException(status_code=404, detail="Lote no encontrado")
+            
+        capas_detectadas = set()
+        
+        # 1. Extraer capas de los resultados
+        referencias = estado.get("referencias", {})
+        for ref_data in referencias.values():
+            # De 'detalle' en afecciones
+            afecciones = ref_data.get("afecciones", {})
+            detalles = afecciones.get("detalle", {})
+            for key in detalles.keys():
+                # Formato esperado: "NombreCapa - Clase"
+                parts = key.split(" - ")
+                if len(parts) > 0:
+                    capas_detectadas.add(parts[0])
+            
+            # De 'analisis_avanzado' -> 'zonas_afectadas'
+            avanzado = afecciones.get("analisis_avanzado", {})
+            zonas = avanzado.get("zonas_afectadas", [])
+            for zona in zonas:
+                if "capa" in zona:
+                    capas_detectadas.add(zona["capa"])
+
+        # 2. Construir respuesta con estilos para leyenda
+        resultados = []
+        for capa_nombre in capas_detectadas:
+            # Obtener estilo del analyzer
+            estilo = analyzer.get_legend_styling(capa_nombre)
+            
+            resultados.append({
+                "nombre": capa_nombre,
+                "url_geojson": f"/api/v1/capas/geojson?nombre_capa={capa_nombre}",
+                "estilo": estilo
+            })
+            
+        return {
+            "lote_id": lote_id,
+            "capas": resultados
+        }
+        
+    except Exception as e:
+        print(f"❌ Error obteniendo capas afectadas lote: {e}")
+        return JSONResponse(status_code=500, content={"status": "error", "error": str(e)})
+
 @app.get("/api/v1/referencia/{referencia}/kml")
 async def obtener_kml(referencia: str, tipo: str = "parcela"):
     """
@@ -1134,7 +1216,8 @@ async def analizar_afecciones_manual(
                             capa_input=capa_name,
                             campo_clasificacion="tipo"
                         )
-                        resultados_capas[capa_name] = res
+                        if res.get("afecciones_detectadas"):
+                            resultados_capas[capa_name] = res
 
                 except Exception as e:
                     resultados_capas[capa_name] = {"error": str(e)}

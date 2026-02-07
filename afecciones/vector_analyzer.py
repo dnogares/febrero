@@ -302,12 +302,6 @@ class VectorAnalyzer:
                             "capa": capa_cfg["nombre"], 
                             "porcentaje": perc
                         })
-                    else:
-                        resultados_csv.append({
-                            "parcela": archivo_parcela.name, 
-                            "capa": capa_cfg["nombre"], 
-                            "porcentaje": 0
-                        })
 
                 if resultados_csv:
                     pd.DataFrame(resultados_csv).to_excel(carpeta_res / "resultados.xlsx", index=False)
