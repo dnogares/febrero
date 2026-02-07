@@ -1,21 +1,25 @@
-fastapi>=0.100.0
-uvicorn>=0.24.0
-pydantic>=2.0.0
-requests>=2.31.0
-pandas>=2.0.0
-numpy>=1.24.0
-shapely>=2.0.0
-pyogrio>=0.7.0
-geopandas>=0.14.0
-pillow>=10.0.0
-reportlab>=4.0.0
-python-multipart>=0.0.6
-pytz>=2023.3
-jinja2>=3.1.0
-lxml>=4.9.0
-matplotlib>=3.5.0
-contextily>=1.3.0
-owslib>=0.29.0
-rtree>=1.0.0
-sqlalchemy>=2.0.0
-psycopg2-binary>=2.9.0
+fastapi
+uvicorn[standard]
+requests
+python-multipart
+jinja2
+
+# Geoespacial (Requiere GDAL en el sistema)
+geopandas
+shapely
+fiona
+pyproj
+rtree
+owslib
+contextily
+
+# Gráficos y Reportes
+matplotlib
+Pillow
+reportlab
+
+# Base de datos
+sqlalchemy
+psycopg2-binary
+pandas
+numpy

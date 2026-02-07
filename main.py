@@ -1264,9 +1264,12 @@ if __name__ == "__main__":
     OUTPUTS_DIR.mkdir(parents=True, exist_ok=True)
     CAPAS_DIR.mkdir(parents=True, exist_ok=True)
     
+    # Usar puerto de variable de entorno (necesario para Easypanel/Docker)
+    port = int(os.getenv("PORT", 80))
+    
     uvicorn.run(
         "main:app", 
         host="0.0.0.0", 
-        port=80, 
+        port=port, 
         reload=False
     )
